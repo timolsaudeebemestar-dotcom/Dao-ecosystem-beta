@@ -172,24 +172,86 @@ export async function depositUSDCtoVault(
     );
   }
 
+  // Ensure user is connected to Arc Testnet (Chain ID 5042002) before executing
+  try {
+    await switchOrAddArcNetwork();
+  } catch (netErr) {
+    console.warn('[Vault Deposit] Network switch warning:', netErr);
+  }
+
   // Step 1: Approve USDC spend for Vault
   onStepChange?.('approving');
   const currentAllowance: bigint = await usdcContract.allowance(userAddress, vaultAddress).catch(() => 0n);
 
-  if (currentAllowance < amountInUnits) {
+  if (currentAllowance >= amountInUnits) {
+    console.log(`[Vault Deposit] Sufficient allowance already active (${currentAllowance.toString()} >= ${amountInUnits.toString()}). Skipping approve step.`);
+  } else {
+    // If allowance > 0 but less than needed, reset allowance to 0 first to comply with strict ERC20 security rules
+    if (currentAllowance > 0n) {
+      console.log(`[Vault Deposit] Current allowance is ${currentAllowance.toString()} units. Resetting to 0 before setting new limit...`);
+      try {
+        const resetTx = await usdcContract.approve(vaultAddress, 0n);
+        await resetTx.wait();
+      } catch (resetErr: any) {
+        console.warn('[Vault Deposit] Warning resetting allowance to 0:', resetErr);
+      }
+    }
+
+    // Approve the required amount
     console.log(`[Vault Deposit] Requesting USDC Approval for ${formattedAmountStr} USDC (${amountInUnits.toString()} units)...`);
-    const approveTx = await usdcContract.approve(vaultAddress, amountInUnits);
-    await approveTx.wait();
+    try {
+      // Try standard approve without forcing gas limit so MetaMask uses node defaults
+      const approveTx = await usdcContract.approve(vaultAddress, amountInUnits);
+      await approveTx.wait();
+    } catch (approveErr: any) {
+      console.warn('[Vault Deposit] Standard approve failed, attempting with fallback gas limit...', approveErr);
+      if (approveErr.code === 4001 || approveErr.message?.includes('user rejected') || approveErr.message?.includes('User denied')) {
+        throw new Error('Aprovação de USDC cancelada na carteira.');
+      }
+      try {
+        let fallbackGas = 120000n;
+        try {
+          const est = await usdcContract.approve.estimateGas(vaultAddress, amountInUnits);
+          fallbackGas = (BigInt(est) * 130n) / 100n;
+        } catch { /* use default 120000n */ }
+
+        const approveTx2 = await usdcContract.approve(vaultAddress, amountInUnits, { gasLimit: fallbackGas });
+        await approveTx2.wait();
+      } catch (approveErr2: any) {
+        console.error('[Vault Deposit] Final approve attempt failed:', approveErr2);
+        if (approveErr2.code === 4001 || approveErr2.message?.includes('user rejected') || approveErr2.message?.includes('User denied')) {
+          throw new Error('Aprovação de USDC cancelada na carteira.');
+        }
+        throw new Error('Falha na aprovação: verifique se você está na rede Arc Testnet (Chain ID 5042002) e possui saldo suficiente para o gás ou tente aprovar novamente.');
+      }
+    }
   }
 
   // Step 2: Deposit USDC into Vault
   onStepChange?.('depositing');
   console.log(`[Vault Deposit] Executing depositUSDC(${formattedAmountStr} USDC / ${amountInUnits.toString()} units) on ${vaultAddress}...`);
-  const depositTx = await vaultContract.depositUSDC(amountInUnits);
-  const receipt = await depositTx.wait();
+  let depositGasLimit: bigint | undefined = undefined;
+  try {
+    const estDeposit = await vaultContract.depositUSDC.estimateGas(amountInUnits);
+    depositGasLimit = (estDeposit * 130n) / 100n; // 30% safety margin above estimate
+  } catch (estErr) {
+    console.warn('[Vault Deposit] Dynamic estimateGas failed for depositUSDC, using fallback 250000:', estErr);
+    depositGasLimit = 250000n;
+  }
 
-  onStepChange?.('done');
-  return receipt.hash || depositTx.hash;
+  try {
+    const depositTx = await vaultContract.depositUSDC(amountInUnits, { gasLimit: depositGasLimit });
+    const receipt = await depositTx.wait();
+
+    onStepChange?.('done');
+    return receipt.hash || depositTx.hash;
+  } catch (depositErr: any) {
+    console.error('[Vault Deposit] Error during depositUSDC execution:', depositErr);
+    if (depositErr.code === 4001 || depositErr.message?.includes('user rejected') || depositErr.message?.includes('User denied')) {
+      throw new Error('Depósito no cofre cancelado na carteira.');
+    }
+    throw new Error('Falha no depósito no cofre: verifique se possui saldo de USDC e gás na rede Arc Testnet.');
+  }
 }
 
 /**

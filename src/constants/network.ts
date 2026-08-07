@@ -1,5 +1,5 @@
 export const ARC_TESTNET_CONFIG = {
-  chainIdHex: '0x4cf352', // 5042002 in hex
+  chainIdHex: '0x4cef52', // 5042002 in hex
   chainIdDecimal: 5042002,
   chainName: 'Arc Testnet',
   rpcUrl: 'https://rpc.testnet.arc.network',
