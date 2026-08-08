@@ -385,7 +385,7 @@ function MainApp() {
       <footer className="mt-12 border-t border-slate-900 bg-slate-950/80 py-8 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-300">Arc On-Chain Polls & Feedback</span>
+            <span className="font-bold text-slate-300">On-Chain Feedback & Rewards</span>
             <span>•</span>
             <span className="text-cyan-400 font-mono">Arc Testnet (Chain ID 5042002)</span>
           </div>

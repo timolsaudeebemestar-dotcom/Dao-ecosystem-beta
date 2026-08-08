@@ -67,7 +67,14 @@ export const PollsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'ended' | 'my_created' | 'my_voted'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'highest_reward' | 'most_votes' | 'ending_soon'>('newest');
-  const [language, setLanguage] = useState<Language>('pt');
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem('app_language');
+    return (saved === 'pt' || saved === 'en') ? saved : 'en';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('app_language', language);
+  }, [language]);
 
   const [vaultBalance, setVaultBalance] = useState<string>('0.00');
   const [isFetchingVault, setIsFetchingVault] = useState<boolean>(false);
@@ -159,7 +166,7 @@ export const PollsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // Require EVM Wallet Signature to create poll
-    const createPollMsg = `Arc Polls - Transação de Criação de Enquete On-Chain\n\n` +
+    const createPollMsg = `On-Chain Feedback & Rewards - Transação de Criação de Enquete On-Chain\n\n` +
       `Por favor, assine para publicar esta enquete no contrato inteligente da Arc Testnet.\n\n` +
       `Título: ${data.title}\n` +
       `Categoria: ${data.category}\n` +
@@ -307,7 +314,7 @@ export const PollsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Fallback: request personal signature if contract execution was blocked due to local gas/rpc estimation
-      const voteMsg = `Arc Polls - Assinatura On-Chain de Voto & Recompensa USDC\n\n` +
+      const voteMsg = `On-Chain Feedback & Rewards - Assinatura On-Chain de Voto & Recompensa USDC\n\n` +
         `Assine esta transação para registrar seu voto e autorizar o resgate da recompensa no contrato inteligente Arc Testnet (Vault 0xCe9D...19DD).\n\n` +
         `ID da Enquete: #${targetPoll.onChainId}\n` +
         `Título: ${targetPoll.title}\n` +
@@ -397,7 +404,7 @@ export const PollsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Request EVM Wallet Signature to confirm deletion on-chain
     try {
-      const deleteMsg = `Arc Polls - Solicitação de Exclusão de Enquete On-Chain\n\n` +
+      const deleteMsg = `On-Chain Feedback & Rewards - Solicitação de Exclusão de Enquete On-Chain\n\n` +
         `Por favor, assine esta requisição para excluir a enquete #${targetPoll.onChainId} (${targetPoll.title}).\n\n` +
         `Criador: ${address}\n` +
         `Data/Hora: ${new Date().toLocaleString('pt-BR')}`;

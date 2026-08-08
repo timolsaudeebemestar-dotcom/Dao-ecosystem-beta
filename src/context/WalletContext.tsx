@@ -145,7 +145,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const userAddr = accounts[0];
 
       // Mandatory SIWE / Wallet Signature request
-      const authMsg = `Autenticação Web3 - Arc Polls dApp\n\n` +
+      const authMsg = `Web3 Auth - On-Chain Feedback & Rewards dApp\n\n` +
         `Solicitação de assinatura para conectar sua carteira com segurança à rede Arc Testnet.\n\n` +
         `Endereço da Carteira: ${userAddr}\n` +
         `Chain ID: ${chainIdDecimal}\n` +

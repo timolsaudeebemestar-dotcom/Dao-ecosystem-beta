@@ -1,5 +1,5 @@
 {
-  "name": "Arc On-Chain Polls & Feedback",
+  "name": "On-Chain Feedback & Rewards",
   "description": "dApp de pesquisas e votações descentralizadas com recompensas em token USDC e badges/NFT na Arc Testnet.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
